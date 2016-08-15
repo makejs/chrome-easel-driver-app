@@ -122,7 +122,7 @@ class Server extends EventEmitter {
     const listen = () => {
       chrome.sockets.tcpServer.listen(this.socketId, host, port, result => {
         if (chrome.runtime.lastError) {
-          throw chrome.runtime.lastError
+          throw new Error(chrome.runtime.lastError.message)
         }
         if (result < 0) throw new Error(`failed to listen on: ${host}:${port} (error code: ${result})`)
         // get info about the server
