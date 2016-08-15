@@ -248,7 +248,6 @@ func (s *Server) On(this *js.Object, args []*js.Object) interface{} {
 			case "disconnect":
 				sock.On(name, func(val string) { fn.Invoke() })
 			case "init_port":
-				log("register init")
 				sock.On(name, func(val string) { fn.Invoke(val) })
 			case "pause":
 				sock.On(name, func(val string) { fn.Invoke() })
