@@ -8,8 +8,8 @@ import (
 import "github.com/googollee/go-socket.io"
 
 func main() {
-	// export the module function
-	js.Global.Get("module").Set("exports", js.MakeFunc(NewServer))
+	// export the main function
+	js.Global.Set("NewSocketServer", js.MakeFunc(NewServer))
 }
 
 type point struct {
