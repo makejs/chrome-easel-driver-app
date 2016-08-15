@@ -99,6 +99,7 @@ exports.SerialPort = class SerialPort extends Events {
   // close will send the disconnect command
   // and clean up the references, and remove the listeners
   close() {
+    if (!this.connectionId) return
     chrome.serial.disconnect(this.connectionId, result => {
       if (chrome.runtime.lastError) {
         this.emit("error", chrome.runtime.lastError)
