@@ -1,0 +1,17 @@
+{
+  "name": "Easel Driver",
+  "description": "Easel local driver running in Chrome",
+  "version": "0.1",
+  "manifest_version": 2,
+  "sockets": {
+    "tcpServer": {
+      "listen": ""
+    }
+  },
+  "permissions": ["serial"],
+  "app": {
+    "background": {
+      "scripts": ["background.js"]
+    }
+  }
+}
