@@ -11,14 +11,14 @@ module.exports = {
       readline: "readline-browserify",
       "socket.io": require.resolve("./shims/socket.io"),
       http: require.resolve("./shims/http"),
-      fs: require.resolve("./shims/noop"),
-      path: require.resolve("./shims/noop"),
+      fs: require.resolve("./shims/fs"),
       serialport: require.resolve("./shims/serialport")
     }
   },
   module: {
     loaders: [
-      {test: /\.js$/, exclude: /node_modules|iris-lib/, loader: "babel"}
+      {test: /\.js$/, exclude: /node_modules|iris-lib/, loader: "babel"},
+      {test: /\.json$/, loader: "json"}
     ]
   },
   plugins: [
