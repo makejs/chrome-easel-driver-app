@@ -115,6 +115,8 @@ class Server extends EventEmitter {
 
   // bind the listener to host:port (probably always :1338 for Easel)
   listen(port, host) {
+    this.localAddress = host
+    this.localPort = port
     // create a function to actually do the listen, in case we haven't received
     // the socketId yet
     const listen = () => {
@@ -123,7 +125,12 @@ class Server extends EventEmitter {
           throw chrome.runtime.lastError
         }
         if (result < 0) throw new Error(`failed to listen on: ${host}:${port} (error code: ${result})`)
-        this.emit("listening", `${host}:${port}`)
+        // get info about the server
+        chrome.sockets.tcpServer.getInfo(this.socketId, ({localAddress, localPort})=> {
+          this.localAddress = localAddress
+          this.localPort = localPort
+          this.emit("listening", `${host}:${port}`)
+        })
       })
     }
 
