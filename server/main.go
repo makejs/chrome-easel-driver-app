@@ -288,7 +288,17 @@ func (s *Server) On(this *js.Object, args []*js.Object) interface{} {
 
 // SetOrigins is only called once, but allows updating the allowed origins
 func (s *Server) SetOrigins(this *js.Object, args []*js.Object) interface{} {
-	s.origins = strings.Split(args[0].String(), " ")
+	o := strings.Split(args[0].String(), " ")
+	s.origins = o[:0]
+	for _, name := range o {
+		if strings.HasSuffix(name, ":80") {
+			s.origins = append(s.origins, "http://"+strings.TrimSuffix(name, ":80"))
+		} else if strings.HasSuffix(name, ":443") {
+			s.origins = append(s.origins, "https://"+strings.TrimSuffix(name, ":443"))
+		} else {
+			s.origins = append(s.origins, name)
+		}
+	}
 	return nil
 }
 func log(args ...interface{}) {
