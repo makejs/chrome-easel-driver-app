@@ -16,6 +16,7 @@ type ClientConn struct {
 	data       chan []byte
 	localAddr  *net.TCPAddr
 	remoteAddr *net.TCPAddr
+	closed     bool
 }
 
 // NewClientConn will create a new ClientConn from a javascript object
@@ -55,6 +56,10 @@ func NewClientConn(c *js.Object) *ClientConn {
 
 // Close will close the connection
 func (c *ClientConn) Close() error {
+	if c.closed {
+		return nil
+	}
+	c.closed = true
 	c.PipeReader.Close()
 	c.c.Call("close")
 	// don't forget to close the channel, so the background goroutine exits!
