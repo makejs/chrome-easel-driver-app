@@ -12,9 +12,13 @@ exports.createServer = () => {
 
 // Socket is a evented tcp connection wrapper
 class Socket extends EventEmitter {
-  constructor(socketId) {
+  constructor({socketId, localAddress, localPort, peerAddress, peerPort}) {
     super()
     this.socketId = socketId
+    this.localAddress = localAddress
+    this.localPort = localPort
+    this.peerAddress = peerAddress
+    this.peerPort = peerPort
 
     chrome.sockets.tcp.onReceive.addListener(this._recv = ({socketId, data})=>{
       if (socketId!==this.socketId) return
@@ -100,8 +104,12 @@ class Server extends EventEmitter {
     // cleanup (and no close method).
     chrome.sockets.tcpServer.onAccept.addListener(({socketId, clientSocketId})=>{
       if (socketId!==this.socketId) return
-      // create a new "Socket" around the new clientSocketId
-      this.emit("accept", new Socket(clientSocketId))
+
+      // instead of just accepting it ask for some info first, then create the Socket
+      chrome.sockets.tcp.getInfo(clientSocketId, ({localAddress, localPort, peerAddress, peerPort})=>this.emit("accept", new Socket({
+        localAddress, localPort, peerAddress, peerPort,
+        socketId: clientSocketId
+      })))
     })
   }
 
