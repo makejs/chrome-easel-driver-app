@@ -6,7 +6,7 @@ const Events = require("events")
 
 // util functions
 const ab2str = buf => new TextDecoder("utf-8").decode(buf)
-const str2ab = str => new TextEncoder("utf-8").encode(str)
+const str2ab = str => new TextEncoder("utf-8").encode(str).buffer
 
 
 // list will call "cb" with (err, devices)
