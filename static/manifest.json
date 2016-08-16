@@ -1,7 +1,7 @@
 {
   "name": "Easel Driver",
   "description": "Easel local driver running in Chrome",
-  "version": "0.1",
+  "version": "0.2",
   "manifest_version": 2,
   "sockets": {
     "tcpServer": {
