@@ -9,23 +9,102 @@ const ab2str = buf => new TextDecoder("utf-8").decode(buf)
 const str2ab = str => new TextEncoder("utf-8").encode(str).buffer
 
 
+// Promise APIs
+function getDevices() {
+  return new Promise(function(resolve, reject){
+    chrome.serial.getDevices(function(devices){
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message))
+        return
+      }
+
+      resolve(devices)
+    })
+  })
+}
+function getConnections() {
+  return new Promise(function(resolve, reject){
+    chrome.serial.getConnections(function(connections){
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message))
+        return
+      }
+
+      resolve(connections)
+    })
+  })
+}
+function connect(path, bitrate) {
+  return new Promise(function(resolve, reject){
+    chrome.serial.connect(path,{bitrate, name: "SP_" + path}, function(info){
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message))
+        return
+      }
+
+      resolve(info)
+    })
+  })
+}
+function send(connectionId, data) {
+  return new Promise(function(resolve, reject){
+    chrome.serial.send(connectionId, data, function(info){
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message))
+        return
+      }
+      if (info.error) {
+        reject(new Error("send serial data: " + info.error))
+        return
+      }
+
+      resolve(info)
+    })
+  })
+}
+function disconnect(connectionId) {
+  return new Promise(function(resolve, reject){
+    chrome.serial.disconnect(connectionId, function(result){
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message))
+        return
+      }
+      resolve(result)
+    })
+  })
+}
+
+// disconnect the serial port if there's a previous connection hanging about
+const connectExclusive = (path, bitrate) => getConnections()
+.then(cs=>{
+  var wait = cs.map(c=>{
+    if (c.name === "SP_" + path) {
+      return disconnect(c.connectionId)
+    }
+  })
+  return Promise.all(wait)
+})
+.then(()=>connect(path, bitrate))
+
+
 // list will call "cb" with (err, devices)
 exports.list = cb => {
-  chrome.serial.getDevices(ports=>{
-      if (chrome.runtime.lastError) return cb(chrome.runtime.lastError)
-      cb(null, ports.map(({vendorId, productId, path, displayName})=>({
-        vendorId,
-        productId,
+  getDevices()
+  .then(ports=>{
+    cb(null, ports.map(({vendorId, productId, path, displayName})=>({
+      vendorId,
+      productId,
 
-        // Easel will callback with just comName when it's time to connect
-        comName: path,
+      // Easel will callback with just comName when it's time to connect
+      comName: path,
 
-        // This is important, it's not exactly what is being asked for
-        // but as long as it has "Arduino" or similar, Easel will attempt
-        // to connect to it, and that's what we want
-        manufacturer: displayName
-      })))
+      // This is important, it's not exactly what is being asked for
+      // but as long as it has "Arduino" or similar, Easel will attempt
+      // to connect to it, and that's what we want
+      manufacturer: displayName
+    })))
   })
+  .catch(cb)
 }
 
 // available parsers, to replicate the serialport API
@@ -78,21 +157,15 @@ exports.SerialPort = class SerialPort extends Events {
 
     // now that everything else is setup and listening, actually make the
     // connection
-    chrome.serial.connect(path,{bitrate:baudrate}, info=>{
-      if (chrome.runtime.lastError) {
-        if (errorCallback) {
-          errorCallback(chrome.runtime.lastError)
-        } else {
-          this.emit("error", chrome.runtime.lastError)
-        }
-        return
-      }
-
-      // if all goes well, set our connectionId, and call flush() in case
-      // we have pending data.
+    connectExclusive(path, baudrate)
+    .then(info=>{
       this.connectionId = info.connectionId
       this.emit("open")
       this.flush()
+    })
+    .catch(err=>{
+      if (errorCallback) errorCallback(err)
+      else this.emit("error", err)
     })
   }
 
@@ -100,13 +173,11 @@ exports.SerialPort = class SerialPort extends Events {
   // and clean up the references, and remove the listeners
   close() {
     if (!this.connectionId) return
-    chrome.serial.disconnect(this.connectionId, result => {
-      if (chrome.runtime.lastError) {
-        this.emit("error", chrome.runtime.lastError)
-        return
-      }
-      this.emit("close")
-    })
+
+    disconnect(this.connectionId)
+    .then(()=>this.emit("close"))
+    .catch(err=>this.emit("error", err))
+
     this.connectionId = null
     this.writeBuffer = null
     chrome.serial.onReceiveError.removeListener(this._recvErr)
@@ -119,17 +190,11 @@ exports.SerialPort = class SerialPort extends Events {
     if (!this.connectionId) return
     if (!this.writeBuffer.length) return
 
-    chrome.serial.send(this.connectionId, this.writeBuffer.shift(), sendInfo => {
-      if (sendInfo.error) {
-        this.emit("error", new Error("write: " + sendInfo.error))
-        this.close()
-      } else if (chrome.runtime.lastError) {
-        this.emit("error", chrome.runtime.lastError)
-        this.close()
-      } else {
-        // call flush again in case something is left
-        this.flush()
-      }
+    send(this.connectionId, this.writeBuffer.shift())
+    .then(()=>this.flush())
+    .catch(err=>{
+      this.emit("error", err)
+      this.close()
     })
   }
   write(data) {
