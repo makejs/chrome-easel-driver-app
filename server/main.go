@@ -152,7 +152,7 @@ func (s *Server) Emit(this *js.Object, args []*js.Object) interface{} {
 	case "paused":
 		go s.sio.BroadcastTo("/", name, args[1].String(), args[2].Float())
 	case "release":
-		go s.sio.BroadcastTo("/", name, args[1].Int())
+		go s.sio.BroadcastTo("/", name, args[1].Int64())
 	case "stopping":
 		go s.sio.BroadcastTo("/", name)
 	case "grbl-error":
@@ -252,7 +252,7 @@ func (s *Server) On(this *js.Object, args []*js.Object) interface{} {
 			case "pause":
 				sock.On(name, func(val string) { fn.Invoke() })
 			case "acquire":
-				sock.On(name, func(val int) { fn.Invoke(val) })
+				sock.On(name, func(val int64) { fn.Invoke(val) })
 			case "resume":
 				sock.On(name, func(val string) { fn.Invoke() })
 			case "stop":
