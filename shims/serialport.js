@@ -121,7 +121,7 @@ const parsers = {
       // use a loop here, in case we get multiple lines in a data packet
       while ((idx = buf.indexOf(separator)) !== -1) {
         cb(buf.slice(0, idx))
-        buf=buf.slice(idx+1)
+        buf=buf.slice(idx+separator.length)
       }
     }
   }
